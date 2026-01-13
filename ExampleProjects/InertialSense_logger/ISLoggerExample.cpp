@@ -26,7 +26,12 @@ int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		printf("Provide the port and optionally log type (dat,raw,sdat,csv,kml) as arguments: $ ./ISLoggerExample /dev/ttyACM0 raw\n");
+		printf("Usage: $ ./ISLoggerExample <connection> [logtype]\n");
+		printf("  connection: Serial port (e.g., /dev/ttyACM0, COM3) or ZMQ connection string (ZMQ:IS:send_port:recv_port)\n");
+		printf("  logtype: Optional log type (dat,raw,sdat,csv,kml). Default is 'dat'\n");
+		printf("\nExamples:\n");
+		printf("  $ ./ISLoggerExample /dev/ttyACM0 raw\n");
+		printf("  $ ./ISLoggerExample ZMQ:IS:7116:7115 dat\n");
 		// In Visual Studio IDE, this can be done through "Project Properties -> Debugging -> Command Arguments: COM3 kml" 
 		return -1;
 	}
@@ -34,9 +39,27 @@ int main(int argc, char* argv[])
 	// STEP 2: Instantiate InertialSense class
 	// InertialSense class wraps communications and logging in a convenient, easy to use class
 	InertialSense inertialSense(msgHandlerIsb);
-	if (!inertialSense.Open(argv[1]))
+	
+	// Check if the connection string is a ZMQ connection (starts with "ZMQ:")
+	std::string connectionString = argv[1];
+	bool isZmq = (connectionString.find("ZMQ:") == 0);
+	
+	bool connected = false;
+	if (isZmq)
 	{
-		std::cout << "Failed to open com port at " << argv[1] << std::endl;
+		// Use OpenConnectionToServer for ZMQ connections
+		connected = inertialSense.OpenConnectionToServer(connectionString);
+	}
+	else
+	{
+		// Use Open for serial port connections
+		connected = inertialSense.Open(argv[1]);
+	}
+	
+	if (!connected)
+	{
+		std::cout << "Failed to open connection: " << connectionString << std::endl;
+		return -1;
 	}
 
 	// STEP 3: Enable data logger
