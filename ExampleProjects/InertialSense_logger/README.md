@@ -21,14 +21,34 @@ This [ISLoggerExample](https://github.com/inertialsense/inertial-sense-sdk/tree/
 #include "InertialSense.h"
 ```
 
-### Step 2: Instantiate InertialSense class
+### Step 2: Instantiate InertialSense class and Open Connection
+
+The logger supports both serial port and ZMQ connections:
 
 ```C++
 	// InertialSense class wraps communications and logging in a convenient, easy to use class
 	InertialSense inertialSense(dataCallback);
-	if (!inertialSense.Open(argv[1]))
+	
+	// Check if the connection string is a ZMQ connection (starts with "ZMQ:")
+	std::string connectionString = argv[1];
+	bool isZmq = (connectionString.find("ZMQ:") == 0);
+	
+	bool connected = false;
+	if (isZmq)
 	{
-		std::cout << "Failed to open com port: " << argv[1] << std::endl;
+		// Use OpenConnectionToServer for ZMQ connections
+		connected = inertialSense.OpenConnectionToServer(connectionString);
+	}
+	else
+	{
+		// Use Open for serial port connections
+		connected = inertialSense.Open(connectionString);
+	}
+	
+	if (!connected)
+	{
+		std::cout << "Failed to open connection: " << connectionString << std::endl;
+		return -1;
 	}
 ```
 
@@ -55,6 +75,26 @@ By default, data logs will be stored in the "IS_logs" directory in the current d
 ``` bash
 build/IS_logs/LOG_SN30664_20180323_112822_0001.dat
 ```
+
+## Connection Types
+
+This example supports two types of connections:
+
+### Serial Port Connection
+Direct connection to InertialSense device via USB/serial port:
+- Linux: `/dev/ttyUSB0`, `/dev/ttyACM0`
+- Windows: `COM3`, `COM4`
+
+### ZMQ Connection
+Network connection using ZeroMQ for communication with a device or simulator:
+- Format: `ZMQ:IS:send_port:recv_port`
+- Example: `ZMQ:IS:7116:7115`
+
+For ZMQ connections, ensure the ZMQ library is installed:
+- **Linux:** `sudo apt-get install libzmq3-dev`
+- **Windows:** Install ZMQ via vcpkg or from https://zeromq.org/
+
+See [ZMQ Interface Documentation](../../docs/ZMQ_Interface.md) for more details.
 
 ## Compile & Run (Linux/Mac)
 
@@ -87,8 +127,22 @@ build/IS_logs/LOG_SN30664_20180323_112822_0001.dat
    (reboot computer)
    ```
 6. Run executable
+   
+   **Serial Port Connection:**
    ``` bash
    ./build/ISLoggerExample /dev/ttyUSB0
+   ```
+   
+   **ZMQ Connection:**
+   ``` bash
+   # Format: ZMQ:IS:send_port:recv_port
+   ./build/ISLoggerExample ZMQ:IS:7116:7115
+   ```
+   
+   **With Log Type:**
+   ``` bash
+   ./build/ISLoggerExample /dev/ttyUSB0 raw
+   ./build/ISLoggerExample ZMQ:IS:7116:7115 dat
    ```
 ## Compile & Run (Windows MS Visual Studio)
 
@@ -103,8 +157,14 @@ build/IS_logs/LOG_SN30664_20180323_112822_0001.dat
 
 4. **Run the Executable:** 
 
+   **Serial Port Connection:**
    ``` bash
    C:\inertial-sense-sdk\ExampleProjects\ISLogger\VS_project\Release\ISLoggerExample.exe COM3
+   ```
+   
+   **ZMQ Connection:**
+   ``` bash
+   C:\inertial-sense-sdk\ExampleProjects\ISLogger\VS_project\Release\ISLoggerExample.exe ZMQ:IS:7116:7115
    ```
 
 ## Summary
