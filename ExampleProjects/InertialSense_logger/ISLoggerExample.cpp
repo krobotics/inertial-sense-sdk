@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	else
 	{
 		// Use Open for serial port connections
-		connected = inertialSense.Open(connectionString.c_str());
+		connected = inertialSense.Open(argv[1]);
 	}
 	
 	if (!connected)
