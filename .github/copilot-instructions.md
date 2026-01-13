@@ -28,7 +28,7 @@ The Inertial Sense SDK is an open-source software development kit for communicat
 - Indentation: 4 spaces (never use tabs)
 - Align consecutive macros across empty lines and comments
 - Insert newline at end of file
-- Case blocks are not indented
+- Case block labels are not indented (IndentCaseBlocks: false)
 
 ### Conventions
 - Use modern C++20 features where appropriate
