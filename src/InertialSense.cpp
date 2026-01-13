@@ -194,8 +194,8 @@ bool InertialSense::EnableLogging(const string& path, const cISLogger::sSaveOpti
     // Register client stream device if a client connection exists
     if (m_clientStream != NULLPTR)
     {
-        // Use serial number 0 for client stream (virtual device)
-        m_clientStreamDevLogger = m_logger.registerDevice(0, 0);
+        // Use virtual serial number for client stream device logger
+        m_clientStreamDevLogger = m_logger.registerDevice(0, CLIENT_STREAM_VIRTUAL_SERIAL_NUMBER);
     }
     
     if (m_logThread == NULLPTR)
@@ -390,8 +390,8 @@ bool InertialSense::OpenConnectionToServer(const string& connectionString)
     // Create a device logger for the client stream if logger is enabled
     if (m_clientStream != NULLPTR && m_logger.Enabled())
     {
-        // Use serial number 0 for client stream (virtual device)
-        m_clientStreamDevLogger = m_logger.registerDevice(0, 0);
+        // Use virtual serial number for client stream device logger
+        m_clientStreamDevLogger = m_logger.registerDevice(0, CLIENT_STREAM_VIRTUAL_SERIAL_NUMBER);
     }
 
     return m_clientStream!=NULLPTR;
@@ -592,6 +592,7 @@ bool InertialSense::UpdateClient()
     if ((n = m_clientStream->Read(comm->rxBuf.tail, n)))
     {
         // Log raw data from client stream (ZMQ/TCP) if logger is enabled and using RAW log type
+        // Note: m_clientStreamDevLogger may be nullptr if logger was not enabled when client stream was opened
         if (m_logger.Enabled() && m_logger.Type() == cISLogger::LOGTYPE_RAW && m_clientStreamDevLogger != nullptr)
         {
             m_logger.LogData(m_clientStreamDevLogger, n, comm->rxBuf.tail);

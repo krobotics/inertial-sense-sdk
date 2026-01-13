@@ -36,6 +36,15 @@ if(NOT ZMQ_LIB)
     set(ZMQ_LIB "zmq")
 endif()
 
+# Find libusb library for Linux
+if(UNIX)
+    find_library(USB_LIB usb-1.0)
+    if(NOT USB_LIB)
+        # Try to use the library directly if find_library doesn't work
+        set(USB_LIB "usb-1.0")
+    endif()
+endif()
+
 # Link the InertialSenseSDK static library 
 link_directories(${IS_SDK_DIR})
 
@@ -69,7 +78,11 @@ if(WIN32)   # Windows
         list(APPEND PROJECT_PLATFORM_LIBS ${ZMQ_LIB})
     endif()
 else()      # Linux
-    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m usb-1.0)
+    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m)
+    # Link libusb if available on Linux
+    if(USB_LIB)
+        list(APPEND PROJECT_PLATFORM_LIBS ${USB_LIB})
+    endif()
 endif()
 
 # Link InertialSenseSDK static library to the executable

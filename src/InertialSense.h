@@ -628,6 +628,7 @@ public:
 
     static const int SYNC_FLASH_CFG_CHECK_PERIOD_MS =    200;
     static const int SYNC_FLASH_CFG_TIMEOUT_MS =        3000;
+    static const uint32_t CLIENT_STREAM_VIRTUAL_SERIAL_NUMBER = 0;  // Virtual serial number for client stream device logger
 
 protected:
     bool OnClientPacketReceived(const uint8_t* data, uint32_t dataLength);
