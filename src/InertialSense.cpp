@@ -141,6 +141,7 @@ InertialSense::InertialSense(
     m_logThread = NULLPTR;
     m_lastLogReInit = time(0);
     m_clientStream = NULLPTR;
+    m_clientStreamDevLogger = nullptr;
     m_clientBufferBytesToSend = 0;
     m_clientServerByteCount = 0;
     m_disableBroadcastsOnClose = false;  // For Intel.
@@ -189,6 +190,14 @@ bool InertialSense::EnableLogging(const string& path, const cISLogger::sSaveOpti
     {
         m_logger.registerDevice(d);
     }
+    
+    // Register client stream device if a client connection exists
+    if (m_clientStream != NULLPTR)
+    {
+        // Use serial number 0 for client stream (virtual device)
+        m_clientStreamDevLogger = m_logger.registerDevice(0, 0);
+    }
+    
     if (m_logThread == NULLPTR)
     {
         m_logThread = threadCreateAndStart(&InertialSense::LoggerThread, this);
@@ -208,6 +217,9 @@ void InertialSense::DisableLogging()
 		threadJoinAndFree(m_logThread);
 		m_logThread = NULLPTR;
 		m_logger.CloseAllFiles();
+		
+		// Clear client stream device logger
+		m_clientStreamDevLogger = nullptr;
 	}
 }
 
@@ -372,8 +384,15 @@ bool InertialSense::OpenConnectionToServer(const string& connectionString)
 {
     CloseServerConnection();
 
-    // calls new cISTcpClient or new cISSerialPort
+    // calls new cISTcpClient or new cISSerialPort or cISZmqClient
     m_clientStream = cISClient::OpenConnectionToServer(connectionString, &m_forwardGpgga);
+
+    // Create a device logger for the client stream if logger is enabled
+    if (m_clientStream != NULLPTR && m_logger.Enabled())
+    {
+        // Use serial number 0 for client stream (virtual device)
+        m_clientStreamDevLogger = m_logger.registerDevice(0, 0);
+    }
 
     return m_clientStream!=NULLPTR;
 }
@@ -388,6 +407,9 @@ void InertialSense::CloseServerConnection()
         delete m_clientStream;
         m_clientStream = NULLPTR;
     }
+    
+    // Clear client stream device logger
+    m_clientStreamDevLogger = nullptr;
 }
 
 // [type]:[ip/url]:[port]
@@ -569,6 +591,12 @@ bool InertialSense::UpdateClient()
     // Read data directly into comm buffer
     if ((n = m_clientStream->Read(comm->rxBuf.tail, n)))
     {
+        // Log raw data from client stream (ZMQ/TCP) if logger is enabled and using RAW log type
+        if (m_logger.Enabled() && m_logger.Type() == cISLogger::LOGTYPE_RAW && m_clientStreamDevLogger != nullptr)
+        {
+            m_logger.LogData(m_clientStreamDevLogger, n, comm->rxBuf.tail);
+        }
+
         // Update comm buffer tail pointer
         comm->rxBuf.tail += n;
 

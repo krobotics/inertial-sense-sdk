@@ -19,6 +19,14 @@ include_directories(
     ${IS_SDK_DIR}/tests/runtime
 )
 
+# Add system libusb include directory for Linux
+if(UNIX)
+    find_path(LIBUSB_INCLUDE_DIR libusb.h PATH_SUFFIXES libusb-1.0)
+    if(LIBUSB_INCLUDE_DIR)
+        include_directories(${LIBUSB_INCLUDE_DIR})
+    endif()
+endif()
+
 find_package(GTest REQUIRED)
 
 # Find ZMQ library
@@ -61,12 +69,12 @@ if(WIN32)   # Windows
         list(APPEND PROJECT_PLATFORM_LIBS ${ZMQ_LIB})
     endif()
 else()      # Linux
-    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m)
+    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m usb-1.0)
 endif()
 
 # Link InertialSenseSDK static library to the executable
-# Link ZMQ after InertialSenseSDK to resolve symbols
-target_link_libraries(${PROJECT_NAME} ${PROJECT_PLATFORM_LIBS} InertialSenseSDK)
+# Link platform libraries and ZMQ after InertialSenseSDK to resolve symbols
+target_link_libraries(${PROJECT_NAME} InertialSenseSDK ${PROJECT_PLATFORM_LIBS})
 if(ZMQ_LIB)
     target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
 endif()

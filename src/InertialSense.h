@@ -658,6 +658,7 @@ private:
     cISTcpServer m_tcpServer;
     cISSerialPort m_serialServer;
     cISStream* m_clientStream;				// Our client connection to a server
+    std::shared_ptr<cDeviceLog> m_clientStreamDevLogger;  // Logger for client stream (ZMQ/TCP)
     uint64_t m_clientServerByteCount;
     int m_clientConnectionsCurrent = 0;
     int m_clientConnectionsTotal = 0;

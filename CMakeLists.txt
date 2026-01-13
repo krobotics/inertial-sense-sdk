@@ -94,6 +94,12 @@ else ()
     target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/libusb/linux
     )
+    
+    # Add system libusb include directory for Linux
+    find_path(LIBUSB_INCLUDE_DIR libusb.h PATH_SUFFIXES libusb-1.0)
+    if(LIBUSB_INCLUDE_DIR)
+        target_include_directories(${PROJECT_NAME} PUBLIC ${LIBUSB_INCLUDE_DIR})
+    endif()
 
     set_source_files_properties(
         src/libusb/libusb/core.c
