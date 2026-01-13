@@ -49,23 +49,16 @@ int main(int argc, char* argv[])
 	{
 		// Use OpenConnectionToServer for ZMQ connections
 		connected = inertialSense.OpenConnectionToServer(connectionString);
-		if (!connected)
-		{
-			std::cout << "Failed to open ZMQ connection: " << connectionString << std::endl;
-		}
 	}
 	else
 	{
 		// Use Open for serial port connections
 		connected = inertialSense.Open(connectionString.c_str());
-		if (!connected)
-		{
-			std::cout << "Failed to open serial port: " << connectionString << std::endl;
-		}
 	}
 	
 	if (!connected)
 	{
+		std::cout << "Failed to open connection: " << connectionString << std::endl;
 		return -1;
 	}
 
