@@ -47,6 +47,12 @@ list(APPEND SOURCES_SDK ${SOURCES_LIB_USB})
 # find_package(udev)
 find_library(UDEV_LIB udev)
 
+# Find ZMQ library
+find_library(ZMQ_LIB zmq)
+if(NOT ZMQ_LIB)
+    message(WARNING "ZMQ library not found. ZMQ interface will not be available.")
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${SOURCES_SDK})
 
 # Include paths
@@ -78,6 +84,11 @@ if (WIN32)
 
     # We need to ensure windows static libs are found
     target_link_libraries(${PROJECT_NAME} Ws2_32.lib)
+    
+    # Link ZMQ if available
+    if(ZMQ_LIB)
+        target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
+    endif()
 else ()
     # Linux specific include dir
     target_include_directories(${PROJECT_NAME} PUBLIC
@@ -98,4 +109,9 @@ else ()
 
     # Link in Linux specific packages
     target_link_libraries(${PROJECT_NAME} udev m)
+    
+    # Link ZMQ if available
+    if(ZMQ_LIB)
+        target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
+    endif()
 endif ()

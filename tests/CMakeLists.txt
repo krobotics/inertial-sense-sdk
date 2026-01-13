@@ -21,6 +21,13 @@ include_directories(
 
 find_package(GTest REQUIRED)
 
+# Find ZMQ library
+find_library(ZMQ_LIB zmq)
+if(NOT ZMQ_LIB)
+    # Try to use the library directly if find_library doesn't work
+    set(ZMQ_LIB "zmq")
+endif()
+
 # Link the InertialSenseSDK static library 
 link_directories(${IS_SDK_DIR})
 
@@ -49,9 +56,17 @@ add_executable(${PROJECT_NAME}
 
 if(WIN32)   # Windows
     set(PROJECT_PLATFORM_LIBS GTest::GTest GTest::Main)
+    # Link ZMQ if available on Windows
+    if(ZMQ_LIB)
+        list(APPEND PROJECT_PLATFORM_LIBS ${ZMQ_LIB})
+    endif()
 else()      # Linux
     set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m)
 endif()
 
 # Link InertialSenseSDK static library to the executable
+# Link ZMQ after InertialSenseSDK to resolve symbols
 target_link_libraries(${PROJECT_NAME} ${PROJECT_PLATFORM_LIBS} InertialSenseSDK)
+if(ZMQ_LIB)
+    target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
+endif()

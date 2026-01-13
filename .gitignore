@@ -49,3 +49,4 @@ CMakeFiles/
 /src/version
 ExampleProjects/IS_SPI_Dev_Example/IS_SPI_Dev_Example_local
 
+/_codeql*

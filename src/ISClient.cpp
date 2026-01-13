@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "ISTcpClient.h"
 #include "ISSerialPort.h"
+#include "ISZmqClient.h"
 #include "ISUtilities.h"
 #include "ISClient.h"
 
@@ -22,6 +23,7 @@ using namespace std;
 // [TCP]:[RTCM3]:[ip/url]:[port]:[mountpoint]:[username]:[password]
 // [TCP]:[RTCM3]:[ip/url]:[port]
 // [SERIAL]:[RTCM3]:[serial port]:[baudrate]
+// [ZMQ]:[protocol]:[send_port]:[recv_port]
 cISStream* cISClient::OpenConnectionToServer(const string& connectionString, bool *enableGpggaForwarding)
 {
 	vector<string> pieces;
@@ -31,7 +33,7 @@ cISStream* cISClient::OpenConnectionToServer(const string& connectionString, boo
 		return NULLPTR;
 	}
 
-	string type     = pieces[0];	// TCP, SERIAL
+	string type     = pieces[0];	// TCP, SERIAL, ZMQ
 	string protocol = pieces[1];	// RTCM3, UBLOX, IS
 
 	if (type == "SERIAL")
@@ -69,6 +71,24 @@ cISStream* cISClient::OpenConnectionToServer(const string& connectionString, boo
 			{
 				*enableGpggaForwarding = true;
 			}
+		}
+
+		return clientStream;
+	}
+	else if(type == "ZMQ")
+	{
+		cISZmqClient *clientStream = new cISZmqClient();
+
+		string sendPort = pieces[2];	// send port (client_to_imu)
+		string recvPort = pieces[3];	// receive port (imu_to_client)
+		
+		string sendEndpoint = "tcp://127.0.0.1:" + sendPort;
+		string recvEndpoint = "tcp://127.0.0.1:" + recvPort;
+
+		if (clientStream->Open(sendEndpoint, recvEndpoint) != 0)
+		{
+			delete clientStream;
+			return NULLPTR;
 		}
 
 		return clientStream;
