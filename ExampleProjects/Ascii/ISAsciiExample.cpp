@@ -33,26 +33,31 @@ static int streamWriteAscii(cISStream* stream, const char* buffer, int bufferLen
     const unsigned char* ptr = (const unsigned char*)buffer;
     int count = 0;
 
-    if (*buffer == '$')
+    // Add leading '$' if not present
+    if (*buffer != '$')
     {
-        ptr++;
-        bufferLength--;
+        count += stream->Write((const unsigned char*)"$", 1);
     }
     else
     {
-        count += stream->Write((const unsigned char*)"$", 1);
+        // Skip the '$' for checksum calculation
+        ptr++;
+        bufferLength--;
     }
 
     const unsigned char* ptrEnd = ptr + bufferLength;
     unsigned char buf[16];
 
-    count += stream->Write((const unsigned char*)buffer, bufferLength);
+    // Write the message content (without leading $)
+    count += stream->Write(ptr, bufferLength);
 
-    while (ptr != ptrEnd)
+    // Calculate checksum
+    while (ptr < ptrEnd)
     {
         checkSum ^= *ptr++;
     }
 
+    // Write checksum and line ending
     snprintf((char*)buf, sizeof(buf), "*%.2x\r\n", checkSum);
     count += stream->Write(buf, 5);
 
@@ -120,8 +125,8 @@ static int streamReadAscii(cISStream* stream, unsigned char* buffer, int bufferL
         int checksum = 0;
         int existingChecksum;
 
-        // calculate checksum, skipping leading $ and trailing *XX\r\n
-        unsigned char* ptrEndNoChecksum = ptrEnd - 3;
+        // calculate checksum, skipping leading $ and trailing *XX\r\n (5 chars)
+        unsigned char* ptrEndNoChecksum = ptrEnd - 5;
         while (++ptr < ptrEndNoChecksum)
         {
             checksum ^= *ptr;
