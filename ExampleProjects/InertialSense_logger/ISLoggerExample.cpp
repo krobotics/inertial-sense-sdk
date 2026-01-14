@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
 	inertialSense.BroadcastBinaryDataRmcPreset(RMC_PRESET_INS);
 
 	// instead of the rmc preset (real-time message controller) you can request individual messages...
-	// Ask for INS_2 message w/ update period multiple of 10 (4ms source period x 10 = 40ms update rate).  Set data rate to zero to disable broadcast and pull a single packet.
+	// Ask for INS_2 message w/ update period multiple of 10 (4ms source period x 10 = 40ms update rate).
 //	inertialSense.BroadcastBinaryData(DID_INS_2, 10);
-	// Ask for IMU message w/ update period multiple of 10 (4ms source period x 10 = 40ms update rate).  Set data rate to zero to disable broadcast and pull a single packet.
+	// Ask for IMU message w/ update period multiple of 10 (4ms source period x 10 = 40ms update rate).
 //	inertialSense.BroadcastBinaryData(DID_IMU, 10);
 
 	// utility class for display and ctrl-c handling
