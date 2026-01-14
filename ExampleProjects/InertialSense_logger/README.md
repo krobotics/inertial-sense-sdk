@@ -68,8 +68,8 @@ The logger supports both serial port and ZMQ connections:
 	inertialSense.BroadcastBinaryDataRmcPreset();
 
 	// instead of the rmc preset (real-time message controller) you can request individual messages...
-	// inertialSense.BroadcastBinaryData(DID_INS_2, 10); // INS_2 every 40 milliseconds (25 Hz) - period multiple 10 x 4ms source period
-	// inertialSense.BroadcastBinaryData(DID_IMU, 10); // IMU every 40 milliseconds (25 Hz) - period multiple 10 x 4ms source period
+	// inertialSense.BroadcastBinaryData(DID_INS_2, 10); // INS_2 every 40 milliseconds (25 Hz) - period multiple 10 x 4ms default source period
+	// inertialSense.BroadcastBinaryData(DID_IMU, 10); // IMU every 40 milliseconds (25 Hz) - period multiple 10 x 4ms default source period
 ```
 
 By default, data logs will be stored in the "IS_logs" directory in the current directory.
