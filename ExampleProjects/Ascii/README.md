@@ -1,15 +1,22 @@
 # SDK: ASCII Communications Example Project
 
-This [ISAsciiExample](https://github.com/inertialsense/inertial-sense-sdk/tree/release/ExampleProjects/Ascii) project demonstrates NMEA communications with the <a href="https://inertialsense.com">InertialSense</a> products (uINS, uAHRS, and uIMU) using the Inertial Sense SDK.  See the [ASCII protocol](../protocol_ascii) section for details on the ASCII packet structures. 
+This [ISAsciiExample](https://github.com/inertialsense/inertial-sense-sdk/tree/release/ExampleProjects/Ascii) project demonstrates NMEA communications with the <a href="https://inertialsense.com">InertialSense</a> products (uINS, uAHRS, and uIMU) using the Inertial Sense SDK. The example supports both **serial port** and **ZMQ** connections. See the [ASCII protocol](../protocol_ascii) section for details on the ASCII packet structures. 
 
 ## Files
 
 #### Project Files
 
-* [ISAsciiExample.c](https://github.com/inertialsense/inertial-sense-sdk/tree/release/ExampleProjects/Ascii/ISAsciiExample.c)
+* [ISAsciiExample.cpp](https://github.com/inertialsense/inertial-sense-sdk/tree/release/ExampleProjects/Ascii/ISAsciiExample.cpp)
 
 #### SDK Files
 
+* [ISClient.cpp](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISClient.cpp)
+* [ISClient.h](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISClient.h)
+* [ISStream.h](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISStream.h)
+* [ISZmqClient.cpp](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISZmqClient.cpp)
+* [ISZmqClient.h](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISZmqClient.h)
+* [ISSerialPort.cpp](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISSerialPort.cpp)
+* [ISSerialPort.h](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISSerialPort.h)
 * [data_sets.c](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/data_sets.c)
 * [data_sets.h](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/data_sets.h)
 * [ISComm.c](https://github.com/inertialsense/inertial-sense-sdk/tree/main/src/ISComm.c)
@@ -26,43 +33,68 @@ This [ISAsciiExample](https://github.com/inertialsense/inertial-sense-sdk/tree/r
 
 ```C++
 // Change these include paths to the correct paths for your project
-#include "../../src/ISComm.h"
-#include "../../src/serialPortPlatform.h"
+#include "../../src/ISClient.h"
+#include "../../src/ISStream.h"
 ```
 
-### Step 2: Initialize and open serial port
+### Step 2: Open connection (Serial or ZMQ)
+
+The example now supports both serial port and ZMQ connections. The connection type is automatically detected based on the connection string format.
 
 ```C++
-	serial_port_t serialPort;
+std::string connectionString = argv[1];
+cISStream* stream = nullptr;
 
-	// Initialize the serial port (Windows, MAC or Linux) - if using an embedded system like Arduino,
-	//  you will need to handle the serial port creation, open and reads yourself. In this
-	//  case, you do not need to include serialPort.h/.c and serialPortPlatform.h/.c in your project.
-	serialPortPlatformInit(&serialPort);
-
-	// Open serial, last parameter is a 1 which means a blocking read, you can set as 0 for non-blocking
-	// you can change the baudrate to a supported baud rate (IS_BAUDRATE_*), make sure to reboot the uINS
-	//  if you are changing baud rates, you only need to do this when you are changing baud rates.
-	if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 1))
-	{
-		printf("Failed to open serial port on com port %s\r\n", argv[1]);
-		return -2;
-	}
+// Check if the connection string is a ZMQ connection (starts with "ZMQ:")
+if (connectionString.find("ZMQ:") == 0)
+{
+    // Use cISClient to open ZMQ connection
+    stream = cISClient::OpenConnectionToServer(connectionString);
+    if (stream == nullptr)
+    {
+        printf("Failed to open ZMQ connection: %s\n", connectionString.c_str());
+        return -2;
+    }
+    printf("Connected via ZMQ: %s\n", stream->ConnectionInfo().c_str());
+}
+else
+{
+    // Use cISClient to open serial connection
+    // Format: SERIAL:IS:port:baudrate
+    std::string serialConnectionString = "SERIAL:IS:" + connectionString + ":921600";
+    stream = cISClient::OpenConnectionToServer(serialConnectionString);
+    if (stream == nullptr)
+    {
+        printf("Failed to open serial port: %s\n", connectionString.c_str());
+        return -2;
+    }
+    printf("Connected via Serial: %s\n", stream->ConnectionInfo().c_str());
+}
 ```
 
-### Step 3: Enable message broadcasting
+**Connection String Formats:**
+- **Serial Port:** `/dev/ttyACM0` or `COM3` (automatically converted to `SERIAL:IS:port:921600`)
+- **ZMQ:** `ZMQ:IS:send_port:recv_port` (e.g., `ZMQ:IS:7116:7115`)
+
+### Step 3: Stop prior message broadcasting
 
 ```C++
-	// stop all broadcasts on the device, we don't want binary message coming through while we are doing ASCII
-	if (!serialPortWriteAscii(&serialPort, "STPB", 4))
-	{
-		printf("Failed to encode stop broadcasts message\r\n");
-		return -3;
-	}
+// Stop all broadcasts on the device on all ports. We don't want binary messages coming through while we are doing ASCII
+if (!streamWriteAscii(stream, "STPB", 4))
+{
+    printf("Failed to encode stop broadcasts message\n");
+    stream->Close();
+    delete stream;
+    return -3;
+}
+```
 
+### Step 4: Enable ASCII message broadcasting
+
+```C++
 	// ASCII protocol is based on NMEA protocol https://en.wikipedia.org/wiki/NMEA_0183
 	// turn on the INS message at a period of 100 milliseconds (10 hz)
-	// serialPortWriteAscii takes care of the leading $ character, checksum and ending \r\n newline
+	// streamWriteAscii takes care of the leading $ character, checksum and ending \r\n newline
 	// ASCE message enables ASCII broadcasts
 	// ASCE fields: 1:options, ID0, Period0, ID1, Period1, ........ ID19, Period19
 	// IDs:
@@ -100,29 +132,37 @@ This [ISAsciiExample](https://github.com/inertialsense/inertial-sense-sdk/tree/r
 	// Stop all messages / broadcasts
 	// const char* asciiMessage = "STPB";
 																				
-	if (!serialPortWriteAscii(&serialPort, asciiMessage, (int)strnlen(asciiMessage, 128)))
+	if (!streamWriteAscii(stream, asciiMessage, (int)strnlen(asciiMessage, 128)))
 	{
-		printf("Failed to encode ASCII get INS message\r\n");
+		printf("Failed to encode ASCII get INS message\n");
+		stream->Close();
+		delete stream;
 		return -4;
 	}
 ```
 
 
-### Step 4: Handle recieved data 
+### Step 5: Handle received data 
 
 ```C++
-	// STEP 4: Handle received data
+	// Handle received data
 	unsigned char* asciiData;
 	unsigned char asciiLine[512];
+
+	printf("Listening for ASCII messages... (Press Ctrl+C to exit)\n");
 
 	// you can set running to false with some other piece of code to break out of the loop and end the program
 	while (running)
 	{
-		if (serialPortReadAscii(&serialPort, asciiLine, sizeof(asciiLine), &asciiData) > 0)
+		if (streamReadAscii(stream, asciiLine, sizeof(asciiLine), &asciiData) > 0)
 		{
-			printf("%s\n", asciiData);
+			printf("%s", asciiData);
 		}
 	}
+
+	// Clean up
+	stream->Close();
+	delete stream;
 ```
 
 ## Compile & Run (Linux/Mac)
@@ -155,17 +195,25 @@ This [ISAsciiExample](https://github.com/inertialsense/inertial-sense-sdk/tree/r
    sudo systemctl disable ModemManager.service && sudo systemctl stop ModemManager.service
    (reboot computer)
    ```
-6. Run executable
+6. Run executable with serial port
    ``` bash
    ./bin/ISAsciiExample /dev/ttyUSB0
+   ```
+7. Or run with ZMQ connection
+   ``` bash
+   ./bin/ISAsciiExample ZMQ:IS:7116:7115
    ```
 ## Compile & Run (Windows MS Visual Studio)
 
 1. Open Visual Studio solution file (inertial-sense-sdk\ExampleProjects\Ascii\VS_project\ISAsciiExample.sln)
 2. Build (F7)
-3. Run executable
+3. Run executable with serial port
    ``` bash
    C:\inertial-sense-sdk\ExampleProjects\Ascii\VS_project\Release\ISAsciiExample.exe COM3
+   ```
+4. Or run with ZMQ connection
+   ``` bash
+   C:\inertial-sense-sdk\ExampleProjects\Ascii\VS_project\Release\ISAsciiExample.exe ZMQ:IS:7116:7115
    ```
 
 ## Summary

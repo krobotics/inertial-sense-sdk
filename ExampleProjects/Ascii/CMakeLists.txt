@@ -15,7 +15,7 @@ include_directories(
 link_directories(${IS_SDK_DIR})
 
 # Define the executable
-add_executable(${PROJECT_NAME} ISAsciiExample.c)
+add_executable(${PROJECT_NAME} ISAsciiExample.cpp)
 
-# Link InertialSenseSDK static library to the executable
-target_link_libraries(${PROJECT_NAME} InertialSenseSDK)
+# Link libraries using common SDK pattern
+include(${IS_SDK_DIR}/include_is_sdk_target_link_libraries.cmake)
