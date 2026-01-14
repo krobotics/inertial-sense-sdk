@@ -42,7 +42,6 @@ static int streamWriteAscii(cISStream* stream, const char* buffer, int bufferLen
     {
         // Skip the '$' for checksum calculation
         ptr++;
-        bufferLength--;
     }
 
     const unsigned char* ptrEnd = ptr + bufferLength;
