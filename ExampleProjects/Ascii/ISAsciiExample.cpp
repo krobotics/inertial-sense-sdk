@@ -124,8 +124,8 @@ static int streamReadAscii(cISStream* stream, unsigned char* buffer, int bufferL
         int checksum = 0;
         int existingChecksum;
 
-        // calculate checksum, skipping leading $ and trailing *XX\r\n (5 chars)
-        unsigned char* ptrEndNoChecksum = ptrEnd - 5;
+        // calculate checksum, skipping leading $ and trailing *XX (3 chars)
+        unsigned char* ptrEndNoChecksum = ptrEnd - 3;
         while (++ptr < ptrEndNoChecksum)
         {
             checksum ^= *ptr;
