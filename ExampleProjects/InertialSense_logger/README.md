@@ -64,9 +64,11 @@ The logger supports both serial port and ZMQ connections:
 
 ```C++
 	// broadcast the standard set of post processing messages (ins, imu, etc.)
+	// Note: RMC_PRESET_INS includes DID_INS_2 and DID_GPS1_POS data
 	inertialSense.BroadcastBinaryDataRmcPreset();
 
 	// instead of the rmc preset (real-time message controller) you can request individual messages...
+	// inertialSense.BroadcastBinaryData(DID_INS_2, 10); // ins_2 every 10 milliseconds (100 hz)
 	// inertialSense.BroadcastBinaryData(DID_IMU, 10); // imu every 10 milliseconds (100 hz)
 ```
 
