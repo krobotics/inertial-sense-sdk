@@ -17,13 +17,5 @@ link_directories(${IS_SDK_DIR})
 # Define the executable
 add_executable(${PROJECT_NAME} ISAsciiExample.cpp)
 
-# Find ZMQ library
-find_library(ZMQ_LIB zmq)
-
-# Link InertialSenseSDK static library to the executable
-target_link_libraries(${PROJECT_NAME} InertialSenseSDK)
-
-# Link ZMQ if available
-if(ZMQ_LIB)
-    target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
-endif()
+# Link libraries using common SDK pattern
+include(${IS_SDK_DIR}/include_is_sdk_target_link_libraries.cmake)
