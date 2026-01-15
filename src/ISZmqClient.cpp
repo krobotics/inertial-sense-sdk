@@ -193,8 +193,11 @@ int cISZmqClient::Write(const void* data, int dataLength)
 
     try
     {
-        // For now, send data as-is. ISB framing should be done by the caller
-        // using is_comm_write_to_buf() or similar functions before calling Write()
+        // NOTE: Unlike Read(), Write() does NOT perform ISB framing or validation.
+        // Callers MUST provide pre-framed ISB packets (e.g., via is_comm_write_to_buf()
+        // or similar helpers) and pass the resulting buffer here. Write() then sends
+        // the data as-is over ZMQ. This intentional asymmetry keeps this class as a
+        // thin transport wrapper while higher layers handle packet construction.
         zmq::message_t message(dataLength);
         std::memcpy(message.data(), data, dataLength);
         
