@@ -126,9 +126,9 @@ int cISZmqClient::Read(void* data, int dataLength)
         // Reset comm buffer for parsing
         m_comm.rxBuf.head = m_comm.rxBuf.tail = m_comm.rxBuf.scan = m_comm.rxBuf.start;
         
-        // Ensure message fits in comm buffer and there's enough space from tail
+        // Ensure message fits in available buffer space
         size_t availableSpace = m_comm.rxBuf.end - m_comm.rxBuf.tail;
-        if (msgSize > availableSpace || msgSize > m_comm.rxBuf.size)
+        if (msgSize > availableSpace)
         {
             // Message too large for available buffer space
             return -1;

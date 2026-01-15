@@ -188,7 +188,7 @@ TEST(ISZmqClientISBTest, InvalidChecksumPacket) {
     
     ASSERT_GT(isbPacket.size(), 2u);
     
-    // Corrupt the checksum (last 2 bytes before end)
+    // Corrupt the checksum (ISB packets have checksum in the last 2 bytes)
     isbPacket[isbPacket.size() - 2] ^= 0xFF;
     isbPacket[isbPacket.size() - 1] ^= 0xFF;
     
@@ -241,7 +241,7 @@ TEST(ISZmqClientISBTest, PacketTooLarge) {
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
     // Should handle gracefully - can only copy what fits
-    size_t copySize = std::min(largePacket.size(), (size_t)PKT_BUF_SIZE);
+    size_t copySize = std::min(largePacket.size(), size_t(PKT_BUF_SIZE));
     std::memcpy(comm.rxBuf.tail, largePacket.data(), copySize);
     comm.rxBuf.tail += copySize;
     
