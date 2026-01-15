@@ -51,6 +51,11 @@ find_library(UDEV_LIB udev)
 find_library(ZMQ_LIB zmq)
 if(NOT ZMQ_LIB)
     message(WARNING "ZMQ library not found. ZMQ interface will not be available.")
+    # Exclude ISZmqClient from compilation if ZMQ is not available
+    list(FILTER SOURCES_SDK EXCLUDE REGEX "ISZmqClient.*")
+else()
+    # Define ENABLE_ZMQ for conditional compilation
+    add_compile_definitions(ENABLE_ZMQ)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES_SDK})

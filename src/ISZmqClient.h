@@ -8,8 +8,10 @@ Copyright (c) 2025 RED 6
 #include <string>
 #include <inttypes.h>
 #include <memory>
+#include <vector>
 
 #include "ISStream.h"
+#include "ISComm.h"
 
 // ZMQ endpoint macros
 #define ZMQ_STRINGIFY_PORT(x) #x
@@ -27,6 +29,16 @@ namespace zmq {
     class socket_t;
 }
 
+/**
+ * ZMQ client for bidirectional communication with ISB (Inertial Sense Binary) packet validation.
+ * 
+ * This class validates ISB-framed packets on Read() and returns decoded payloads.
+ * Write() expects pre-framed ISB packets from the caller.
+ * 
+ * @warning This class is NOT thread-safe. The internal m_comm instance and buffer are modified
+ * during Read() operations without synchronization. If concurrent access is required, external
+ * synchronization (e.g., mutex) must be used by the caller.
+ */
 class cISZmqClient : public cISStream
 {
 public:
@@ -55,16 +67,27 @@ public:
     int Close() OVERRIDE;
 
     /**
-    * Read data from the client
-    * @param data the buffer to read data into
+    * Read data from the client. Validates ISB-framed packets and returns decoded payload.
+    * 
+    * ZMQ messages contain ISB-framed packets with preamble, headers, payload, and checksum.
+    * This method validates the packet structure and returns only the decoded payload data.
+    * 
+    * @param data the buffer to read decoded payload data into
     * @param dataLength the number of bytes available in data
-    * @return the number of bytes read or less than 0 if error
+    * @return the number of bytes read (decoded payload size), 0 if no data, or -1 on error
+    * @note This method validates and decodes ISB packets. See Write() for handling of outgoing data.
     */
     int Read(void* data, int dataLength) OVERRIDE;
 
     /**
-    * Write data to the client
-    * @param data the data to write
+    * Write data to the client. Expects pre-framed ISB packets.
+    * 
+    * Unlike Read() which validates and decodes ISB packets, Write() does NOT perform ISB framing.
+    * Callers MUST provide pre-framed ISB packets (e.g., via is_comm_write_to_buf() or similar
+    * helpers) and pass the resulting buffer here. This intentional asymmetry keeps this class
+    * as a thin transport wrapper while higher layers handle packet construction.
+    * 
+    * @param data the pre-framed ISB packet data to write
     * @param dataLength the number of bytes to write
     * @return the number of bytes written or less than 0 if error
     */
@@ -91,6 +114,10 @@ private:
     std::string m_sendEndpoint;
     std::string m_recvEndpoint;
     bool m_isOpen;
+
+    // ISB packet validation
+    is_comm_instance_t m_comm;
+    std::vector<uint8_t> m_commBuffer;
 };
 
 #endif // __ISZMQCLIENT__H__

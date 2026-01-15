@@ -21,18 +21,23 @@ include_directories(
 
 find_package(GTest REQUIRED)
 
-# Find ZMQ library
-find_library(ZMQ_LIB zmq)
-if(NOT ZMQ_LIB)
-    # Try to use the library directly if find_library doesn't work
-    set(ZMQ_LIB "zmq")
-endif()
-
 # Link the InertialSenseSDK static library 
 link_directories(${IS_SDK_DIR})
 
 file(GLOB TESTS_SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_*.cpp")
 list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_com_manager_2.cpp")
+
+# Find ZMQ library
+find_library(ZMQ_LIB zmq)
+if(NOT ZMQ_LIB)
+    message(WARNING "ZMQ library not found. ZMQ tests will be excluded.")
+    # Exclude ISZmqClient tests from compilation if ZMQ is not available
+    list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_ISZmqClient.cpp")
+else()
+    # Define ENABLE_ZMQ for conditional compilation
+    add_compile_definitions(ENABLE_ZMQ)
+endif()
+
 if(WIN32)   # These do not run in Windows
     list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_time_conversion.cpp")
     # yamlcpp needs to know it's a static lib
@@ -67,6 +72,7 @@ endif()
 # Link InertialSenseSDK static library to the executable
 # Link ZMQ after InertialSenseSDK to resolve symbols
 target_link_libraries(${PROJECT_NAME} ${PROJECT_PLATFORM_LIBS} InertialSenseSDK)
+# Only link ZMQ if it was found
 if(ZMQ_LIB)
     target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
 endif()

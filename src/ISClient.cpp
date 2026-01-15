@@ -12,7 +12,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "ISTcpClient.h"
 #include "ISSerialPort.h"
+#ifdef ENABLE_ZMQ
 #include "ISZmqClient.h"
+#endif
 #include "ISUtilities.h"
 #include "ISClient.h"
 
@@ -75,6 +77,7 @@ cISStream* cISClient::OpenConnectionToServer(const string& connectionString, boo
 
 		return clientStream;
 	}
+#ifdef ENABLE_ZMQ
 	else if(type == "ZMQ")
 	{
 		cISZmqClient *clientStream = new cISZmqClient();
@@ -93,6 +96,7 @@ cISStream* cISClient::OpenConnectionToServer(const string& connectionString, boo
 
 		return clientStream;
 	}
+#endif
 
 	return NULLPTR;
 }
