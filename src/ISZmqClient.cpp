@@ -123,12 +123,12 @@ int cISZmqClient::Read(void* data, int dataLength)
         // ZMQ messages contain ISB-framed packets - validate and decode them
         uint8_t* msgData = static_cast<uint8_t*>(message.data());
         
-        // Reset comm buffer for parsing
-        m_comm.rxBuf.head = m_comm.rxBuf.tail = m_comm.rxBuf.scan = m_comm.rxBuf.start;
+        // Get available size of comm buffer. is_comm_free() modifies comm->rxBuf pointers,
+        // call it before using comm->rxBuf.tail (as per standard pattern in InertialSense.cpp)
+        int n = is_comm_free(&m_comm);
         
         // Ensure message fits in available buffer space
-        size_t availableSpace = m_comm.rxBuf.end - m_comm.rxBuf.tail;
-        if (msgSize > availableSpace)
+        if (msgSize > (size_t)n)
         {
             // Message too large for available buffer space
             return -1;

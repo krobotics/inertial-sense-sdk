@@ -197,8 +197,9 @@ TEST(ISZmqClientISBTest, InvalidChecksumPacket) {
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
-    // Ensure packet fits in buffer
-    ASSERT_LE(isbPacket.size(), (size_t)PKT_BUF_SIZE);
+    // Use proper API pattern: is_comm_free() before using rxBuf.tail
+    int n = is_comm_free(&comm);
+    ASSERT_GE(n, (int)isbPacket.size()) << "Buffer should have enough space";
     
     // Copy packet to comm buffer
     std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
@@ -219,8 +220,9 @@ TEST(ISZmqClientISBTest, InvalidPreamblePacket) {
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
-    // Ensure packet fits in buffer
-    ASSERT_LE(invalidPacket.size(), (size_t)PKT_BUF_SIZE);
+    // Use proper API pattern: is_comm_free() before using rxBuf.tail
+    int n = is_comm_free(&comm);
+    ASSERT_GE(n, (int)invalidPacket.size()) << "Buffer should have enough space";
     
     // Copy packet to comm buffer
     std::memcpy(comm.rxBuf.tail, invalidPacket.data(), invalidPacket.size());
@@ -240,8 +242,11 @@ TEST(ISZmqClientISBTest, PacketTooLarge) {
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
+    // Use proper API pattern: is_comm_free() before using rxBuf.tail
+    int n = is_comm_free(&comm);
+    
     // Should handle gracefully - can only copy what fits
-    size_t copySize = std::min(largePacket.size(), size_t(PKT_BUF_SIZE));
+    size_t copySize = std::min(largePacket.size(), size_t(n));
     std::memcpy(comm.rxBuf.tail, largePacket.data(), copySize);
     comm.rxBuf.tail += copySize;
     
@@ -264,8 +269,9 @@ TEST(ISZmqClientISBTest, PayloadExtraction) {
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
-    // Ensure packet fits in buffer
-    ASSERT_LE(isbPacket.size(), (size_t)PKT_BUF_SIZE);
+    // Use proper API pattern: is_comm_free() before using rxBuf.tail
+    int n = is_comm_free(&comm);
+    ASSERT_GE(n, (int)isbPacket.size()) << "Buffer should have enough space";
     
     std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
     comm.rxBuf.tail += isbPacket.size();
