@@ -197,6 +197,9 @@ TEST(ISZmqClientISBTest, InvalidChecksumPacket) {
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
     
+    // Ensure packet fits in buffer
+    ASSERT_LE(isbPacket.size(), (size_t)PKT_BUF_SIZE);
+    
     // Copy packet to comm buffer
     std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
     comm.rxBuf.tail += isbPacket.size();
@@ -215,6 +218,9 @@ TEST(ISZmqClientISBTest, InvalidPreamblePacket) {
     is_comm_instance_t comm;
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Ensure packet fits in buffer
+    ASSERT_LE(invalidPacket.size(), (size_t)PKT_BUF_SIZE);
     
     // Copy packet to comm buffer
     std::memcpy(comm.rxBuf.tail, invalidPacket.data(), invalidPacket.size());
@@ -257,6 +263,9 @@ TEST(ISZmqClientISBTest, PayloadExtraction) {
     is_comm_instance_t comm;
     uint8_t commBuffer[PKT_BUF_SIZE];
     is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Ensure packet fits in buffer
+    ASSERT_LE(isbPacket.size(), (size_t)PKT_BUF_SIZE);
     
     std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
     comm.rxBuf.tail += isbPacket.size();
