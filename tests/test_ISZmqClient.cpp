@@ -5,8 +5,10 @@ Copyright (c) 2025 RED 6
 #include "gtest/gtest.h"
 #include "ISZmqClient.h"
 #include "ISClient.h"
+#include "ISComm.h"
 #include <thread>
 #include <chrono>
+#include <cstring>
 
 // Test basic ZMQ client creation and destruction
 TEST(ISZmqClientTest, Constructor) {
@@ -139,4 +141,134 @@ TEST(ISZmqClientTest, MultipleOpenClose) {
         EXPECT_EQ(result, 0);
         EXPECT_FALSE(client.IsOpen());
     }
+}
+
+// Helper function to create a valid ISB-framed packet
+std::vector<uint8_t> createISBPacket(uint16_t did, const void* payload, uint16_t payloadSize) {
+    // Prepare buffer for ISB packet
+    std::vector<uint8_t> packet(PKT_BUF_SIZE);
+    
+    // Initialize ISComm instance for packet creation
+    is_comm_instance_t comm;
+    uint8_t commBuffer[PKT_BUF_SIZE];
+    is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Create ISB packet using is_comm_write_to_buf
+    int packetSize = is_comm_write_to_buf(packet.data(), packet.size(), &comm, 
+                                          PKT_TYPE_DATA, did, payloadSize, 0, (void*)payload);
+    
+    // Resize to actual packet size
+    if (packetSize > 0) {
+        packet.resize(packetSize);
+    } else {
+        packet.clear();
+    }
+    
+    return packet;
+}
+
+// Test ISB packet validation - valid packet
+TEST(ISZmqClientISBTest, ValidISBPacket) {
+    // Create a valid ISB packet
+    uint32_t testData = 0x12345678;
+    std::vector<uint8_t> isbPacket = createISBPacket(DID_DEV_INFO, &testData, sizeof(testData));
+    
+    ASSERT_GT(isbPacket.size(), 0u) << "Failed to create ISB packet";
+    
+    // Verify packet has ISB preamble
+    EXPECT_EQ(isbPacket[0], 0xEF) << "Missing ISB preamble byte 1";
+    EXPECT_EQ(isbPacket[1], 0x49) << "Missing ISB preamble byte 2";
+}
+
+// Test ISB packet validation - invalid checksum
+TEST(ISZmqClientISBTest, InvalidChecksumPacket) {
+    // Create a valid ISB packet
+    uint32_t testData = 0x12345678;
+    std::vector<uint8_t> isbPacket = createISBPacket(DID_DEV_INFO, &testData, sizeof(testData));
+    
+    ASSERT_GT(isbPacket.size(), 2u);
+    
+    // Corrupt the checksum (last 2 bytes before end)
+    isbPacket[isbPacket.size() - 2] ^= 0xFF;
+    isbPacket[isbPacket.size() - 1] ^= 0xFF;
+    
+    // Try to validate using is_comm_parse
+    is_comm_instance_t comm;
+    uint8_t commBuffer[PKT_BUF_SIZE];
+    is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Copy packet to comm buffer
+    std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
+    comm.rxBuf.tail += isbPacket.size();
+    
+    // Parse should return error for invalid checksum
+    protocol_type_t ptype = is_comm_parse(&comm);
+    EXPECT_EQ(ptype, _PTYPE_PARSE_ERROR) << "Should detect invalid checksum";
+}
+
+// Test ISB packet validation - invalid preamble
+TEST(ISZmqClientISBTest, InvalidPreamblePacket) {
+    // Create a packet with invalid preamble
+    std::vector<uint8_t> invalidPacket = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    
+    // Try to validate using is_comm_parse
+    is_comm_instance_t comm;
+    uint8_t commBuffer[PKT_BUF_SIZE];
+    is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Copy packet to comm buffer
+    std::memcpy(comm.rxBuf.tail, invalidPacket.data(), invalidPacket.size());
+    comm.rxBuf.tail += invalidPacket.size();
+    
+    // Parse should not find valid packet
+    protocol_type_t ptype = is_comm_parse(&comm);
+    EXPECT_NE(ptype, _PTYPE_INERTIAL_SENSE_DATA) << "Should not parse invalid preamble";
+}
+
+// Test ISB packet validation - packet too large
+TEST(ISZmqClientISBTest, PacketTooLarge) {
+    // Create a buffer larger than PKT_BUF_SIZE
+    std::vector<uint8_t> largePacket(PKT_BUF_SIZE + 100, 0xAA);
+    
+    is_comm_instance_t comm;
+    uint8_t commBuffer[PKT_BUF_SIZE];
+    is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    // Should handle gracefully - can only copy what fits
+    size_t copySize = std::min(largePacket.size(), (size_t)PKT_BUF_SIZE);
+    std::memcpy(comm.rxBuf.tail, largePacket.data(), copySize);
+    comm.rxBuf.tail += copySize;
+    
+    // Parse should handle this without crashing
+    protocol_type_t ptype = is_comm_parse(&comm);
+    // Expect parse error or no complete packet
+    EXPECT_TRUE(ptype == _PTYPE_PARSE_ERROR || ptype == _PTYPE_NONE);
+}
+
+// Test payload extraction from valid ISB packet
+TEST(ISZmqClientISBTest, PayloadExtraction) {
+    // Create a valid ISB packet with known payload
+    uint32_t testPayload = 0xDEADBEEF;
+    std::vector<uint8_t> isbPacket = createISBPacket(DID_DEV_INFO, &testPayload, sizeof(testPayload));
+    
+    ASSERT_GT(isbPacket.size(), 0u);
+    
+    // Parse the packet
+    is_comm_instance_t comm;
+    uint8_t commBuffer[PKT_BUF_SIZE];
+    is_comm_init(&comm, commBuffer, PKT_BUF_SIZE);
+    
+    std::memcpy(comm.rxBuf.tail, isbPacket.data(), isbPacket.size());
+    comm.rxBuf.tail += isbPacket.size();
+    
+    protocol_type_t ptype = is_comm_parse(&comm);
+    ASSERT_EQ(ptype, _PTYPE_INERTIAL_SENSE_DATA) << "Should parse valid packet";
+    
+    // Verify payload was extracted correctly
+    ASSERT_GE(comm.rxPkt.data.size, sizeof(uint32_t));
+    ASSERT_NE(comm.rxPkt.data.ptr, nullptr);
+    
+    uint32_t extractedPayload;
+    std::memcpy(&extractedPayload, comm.rxPkt.data.ptr, sizeof(uint32_t));
+    EXPECT_EQ(extractedPayload, testPayload) << "Payload should match original data";
 }
