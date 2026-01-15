@@ -163,8 +163,8 @@ int cISZmqClient::Read(void* data, int dataLength)
             
             if (payloadSize > (size_t)dataLength)
             {
-                // Output buffer too small for decoded payload
-                payloadSize = (size_t)dataLength;
+                // Output buffer too small for decoded payload - signal error instead of truncating
+                return -1;
             }
             
             if (payloadSize > 0 && m_comm.rxPkt.data.ptr != nullptr)
