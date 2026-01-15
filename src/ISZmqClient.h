@@ -8,8 +8,10 @@ Copyright (c) 2025 RED 6
 #include <string>
 #include <inttypes.h>
 #include <memory>
+#include <vector>
 
 #include "ISStream.h"
+#include "ISComm.h"
 
 // ZMQ endpoint macros
 #define ZMQ_STRINGIFY_PORT(x) #x
@@ -91,6 +93,10 @@ private:
     std::string m_sendEndpoint;
     std::string m_recvEndpoint;
     bool m_isOpen;
+
+    // ISB packet validation
+    is_comm_instance_t m_comm;
+    std::vector<uint8_t> m_commBuffer;
 };
 
 #endif // __ISZMQCLIENT__H__

@@ -3,6 +3,7 @@ Copyright (c) 2025 RED 6
 */
 
 #include "ISZmqClient.h"
+#include "ISComm.h"
 #include <zmq.hpp>
 #include <cstring>
 
@@ -11,7 +12,10 @@ cISZmqClient::cISZmqClient()
     , m_sendSocket(nullptr)
     , m_recvSocket(nullptr)
     , m_isOpen(false)
+    , m_commBuffer(PKT_BUF_SIZE)
 {
+    // Initialize ISComm instance for packet validation
+    is_comm_init(&m_comm, m_commBuffer.data(), m_commBuffer.size());
 }
 
 cISZmqClient::~cISZmqClient()
@@ -111,14 +115,67 @@ int cISZmqClient::Read(void* data, int dataLength)
         }
 
         size_t msgSize = message.size();
-        if (msgSize > (size_t)dataLength)
+        if (msgSize == 0)
         {
-            // Message too large for buffer
-            msgSize = (size_t)dataLength;
+            return 0;
         }
 
-        std::memcpy(data, message.data(), msgSize);
-        return (int)msgSize;
+        // ZMQ messages contain ISB-framed packets - validate and decode them
+        uint8_t* msgData = static_cast<uint8_t*>(message.data());
+        
+        // Reset comm buffer for parsing
+        m_comm.rxBuf.head = m_comm.rxBuf.tail = m_comm.rxBuf.scan = m_comm.rxBuf.start;
+        
+        // Ensure message fits in comm buffer
+        if (msgSize > m_comm.rxBuf.size)
+        {
+            // Message too large for comm buffer
+            return -1;
+        }
+        
+        // Copy message to comm buffer
+        std::memcpy(m_comm.rxBuf.tail, msgData, msgSize);
+        m_comm.rxBuf.tail += msgSize;
+        
+        // Parse and validate the ISB packet
+        protocol_type_t ptype = is_comm_parse(&m_comm);
+        
+        if (ptype == _PTYPE_PARSE_ERROR)
+        {
+            // Invalid packet - checksum failed or malformed
+            return -1;
+        }
+        
+        if (ptype == _PTYPE_NONE)
+        {
+            // No complete packet found (shouldn't happen with discrete ZMQ messages)
+            return 0;
+        }
+        
+        // Valid packet found - extract and return payload data (without ISB framing)
+        if (ptype == _PTYPE_INERTIAL_SENSE_DATA || 
+            ptype == _PTYPE_INERTIAL_SENSE_CMD || 
+            ptype == _PTYPE_INERTIAL_SENSE_ACK)
+        {
+            // Get payload size (decoded, without ISB framing)
+            size_t payloadSize = m_comm.rxPkt.data.size;
+            
+            if (payloadSize > (size_t)dataLength)
+            {
+                // Output buffer too small for decoded payload
+                payloadSize = (size_t)dataLength;
+            }
+            
+            if (payloadSize > 0 && m_comm.rxPkt.data.ptr != nullptr)
+            {
+                // Copy decoded payload data (actual data, not framed)
+                std::memcpy(data, m_comm.rxPkt.data.ptr, payloadSize);
+                return (int)payloadSize;
+            }
+        }
+        
+        // Unsupported packet type or no payload
+        return 0;
     }
     catch (const zmq::error_t& e)
     {
@@ -135,6 +192,8 @@ int cISZmqClient::Write(const void* data, int dataLength)
 
     try
     {
+        // For now, send data as-is. ISB framing should be done by the caller
+        // using is_comm_write_to_buf() or similar functions before calling Write()
         zmq::message_t message(dataLength);
         std::memcpy(message.data(), data, dataLength);
         
