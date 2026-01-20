@@ -9,6 +9,23 @@
 
 #include "uSleep.h"
 
+// NOTE: This file shows the implementation of IMUStage methods using serial_port_t.
+// In your class declaration (typically in a separate header), you would have:
+//
+// class IMUStage {
+// public:
+//     serial_port_t serialPort;  // Will be replaced with: static cISStream* stream;
+//     
+//     // ... other members ...
+//     
+//     int set_configuration(serial_port_t *serialPort, is_comm_instance_t *comm);
+//     int stop_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm);
+//     int save_persistent_messages(serial_port_t *serialPort, is_comm_instance_t *comm);
+//     int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm);
+//     
+//     // ... other methods ...
+// };
+
 // euler angles to rotation matrix from math.h but we need to control the include order here
 cv::Matx33d euler2rmat(const cv::Vec3d &a) {
 	cv::Matx33d rx = {

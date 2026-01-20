@@ -192,7 +192,7 @@ Before finalizing your migration, check:
 
 These migration documents and examples are provided as part of the InertialSense SDK.
 
-MIT License - Copyright (c) 2014-2025 Inertial Sense, Inc.
+MIT License - Copyright (c) 2014-2026 Inertial Sense, Inc.
 
 ---
 
