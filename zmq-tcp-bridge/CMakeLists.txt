@@ -46,12 +46,17 @@ target_include_directories(zmq_tcp_bridge PRIVATE
     ../external
 )
 
+# Link libraries for the executable
 target_link_libraries(zmq_tcp_bridge
     ${PROJECT_NAME}
     InertialSenseSDK
     ${ZMQ_LIB}
-    pthread
 )
+
+# Link pthread only on Unix-like platforms (not needed on Windows)
+if(UNIX)
+    target_link_libraries(zmq_tcp_bridge pthread)
+endif()
 
 set_property(TARGET zmq_tcp_bridge PROPERTY CXX_STANDARD 20)
 
