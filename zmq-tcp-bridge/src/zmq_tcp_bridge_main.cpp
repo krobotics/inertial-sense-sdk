@@ -19,15 +19,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <chrono>
 
 static cISZmqTcpBridge* g_bridge = nullptr;
+static volatile std::sig_atomic_t g_interrupted = 0;
 
 void signalHandler(int signum)
 {
     std::cout << "\nInterrupt signal (" << signum << ") received." << std::endl;
+    g_interrupted = 1;
     if (g_bridge)
     {
         g_bridge->Stop();
     }
-    exit(signum);
 }
 
 void printUsage(const char* progName)
