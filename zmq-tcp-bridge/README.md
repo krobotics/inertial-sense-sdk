@@ -11,10 +11,12 @@ The ZMQ-to-TCP Bridge is a standalone library and executable that allows the Ine
 │ ZMQ         │        │ ZMQ-TCP Bridge   │        │ InertialSense   │
 │ Publisher   │───────>│                  │───────>│ SDK Client      │
 │ (External)  │  ZMQ   │  ZMQ SUB → TCP   │  TCP   │ (Unmodified)    │
-└─────────────┘        │                  │        └─────────────────┘
-                       │  TCP → ZMQ PUB   │
-                       └──────────────────┘
+└─────────────┘        └──────────────────┘        └─────────────────┘
 ```
+
+**Current Implementation**: ZMQ → TCP forwarding (primary use case for IMU data streaming)
+
+**Note**: TCP → ZMQ forwarding is not yet implemented but can be added if bidirectional communication is required.
 
 ## Why This Bridge?
 

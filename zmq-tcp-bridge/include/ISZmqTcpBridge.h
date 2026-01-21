@@ -29,17 +29,19 @@ class cISTcpServer;
 /**
  * ZMQ-to-TCP Bridge
  * 
- * This class creates a bidirectional bridge between ZMQ sockets and TCP connections.
- * It allows the original InertialSense SDK to connect via TCP without needing ZMQ support.
+ * This class creates a unidirectional bridge from ZMQ sockets to TCP connections.
+ * It allows the original InertialSense SDK to receive data via TCP without needing ZMQ support.
  * 
  * Architecture:
  * - ZMQ Publisher (external) → ZMQ SUB socket → Bridge → TCP Server → SDK Client
- * - SDK Client → TCP Server → Bridge → ZMQ PUB socket → ZMQ Subscriber (external)
+ * 
+ * Note: Currently implements ZMQ → TCP forwarding (primary use case for IMU data streaming).
+ * TCP → ZMQ forwarding can be added if bidirectional communication is needed.
  * 
  * Usage:
  * 1. Start the bridge with ZMQ endpoints and TCP port
  * 2. Connect InertialSense SDK client to TCP port using normal TCP connection string
- * 3. Data flows transparently between ZMQ and TCP
+ * 3. Data flows from ZMQ to TCP transparently
  */
 class cISZmqTcpBridge
 {

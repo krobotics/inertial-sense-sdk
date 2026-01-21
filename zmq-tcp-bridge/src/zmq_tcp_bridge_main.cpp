@@ -15,6 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <csignal>
 #include <string>
 #include <cstring>
+#include <thread>
+#include <chrono>
 
 static cISZmqTcpBridge* g_bridge = nullptr;
 

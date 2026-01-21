@@ -15,7 +15,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <zmq.hpp>
 #include <iostream>
 #include <chrono>
+#include <thread>
 #include <cstring>
+#include <errno.h>
 
 // Buffer size for data transfer
 constexpr size_t BRIDGE_BUFFER_SIZE = 8192;
