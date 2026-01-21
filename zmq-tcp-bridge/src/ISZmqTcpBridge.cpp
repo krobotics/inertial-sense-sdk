@@ -97,11 +97,108 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
     catch (const zmq::error_t& e)
     {
         std::cerr << "ZMQ error: " << e.what() << std::endl;
+
+        // Ensure any partially initialized resources are cleaned up.
+        m_isRunning = false;
+
+        // Join any threads that may have been started.
+        if (m_zmqToTcpThread && m_zmqToTcpThread->joinable())
+        {
+            m_zmqToTcpThread->join();
+        }
+        if (m_tcpToZmqThread && m_tcpToZmqThread->joinable())
+        {
+            m_tcpToZmqThread->join();
+        }
+
+        // Clean up resources similar to Stop(), but without relying on m_isRunning.
+        try
+        {
+            if (m_tcpServer)
+            {
+                m_tcpServer->Close();
+                m_tcpServer.reset();
+            }
+
+            if (m_zmqRecvSocket)
+            {
+                m_zmqRecvSocket->close();
+                m_zmqRecvSocket.reset();
+            }
+
+            if (m_zmqSendSocket)
+            {
+                m_zmqSendSocket->close();
+                m_zmqSendSocket.reset();
+            }
+
+            if (m_zmqContext)
+            {
+                m_zmqContext->close();
+                m_zmqContext.reset();
+            }
+        }
+        catch (const zmq::error_t& cleanupError)
+        {
+            std::cerr << "Error during cleanup after ZMQ error: " << cleanupError.what() << std::endl;
+        }
+
+        m_zmqToTcpThread.reset();
+        m_tcpToZmqThread.reset();
+
         return -1;
     }
     catch (const std::exception& e)
     {
         std::cerr << "Error starting bridge: " << e.what() << std::endl;
+
+        // Ensure any partially initialized resources are cleaned up.
+        m_isRunning = false;
+
+        // Join any threads that may have been started.
+        if (m_zmqToTcpThread && m_zmqToTcpThread->joinable())
+        {
+            m_zmqToTcpThread->join();
+        }
+        if (m_tcpToZmqThread && m_tcpToZmqThread->joinable())
+        {
+            m_tcpToZmqThread->join();
+        }
+
+        // Clean up resources similar to Stop(), but without relying on m_isRunning.
+        try
+        {
+            if (m_tcpServer)
+            {
+                m_tcpServer->Close();
+                m_tcpServer.reset();
+            }
+
+            if (m_zmqRecvSocket)
+            {
+                m_zmqRecvSocket->close();
+                m_zmqRecvSocket.reset();
+            }
+
+            if (m_zmqSendSocket)
+            {
+                m_zmqSendSocket->close();
+                m_zmqSendSocket.reset();
+            }
+
+            if (m_zmqContext)
+            {
+                m_zmqContext->close();
+                m_zmqContext.reset();
+            }
+        }
+        catch (const zmq::error_t& cleanupError)
+        {
+            std::cerr << "Error during cleanup after start failure: " << cleanupError.what() << std::endl;
+        }
+
+        m_zmqToTcpThread.reset();
+        m_tcpToZmqThread.reset();
         return -1;
     }
 }
