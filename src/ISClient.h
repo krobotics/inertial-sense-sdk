@@ -27,16 +27,15 @@ public:
 	cISClient(){}
 
 	/**
-	* Opens an ISStream (TCP, Serial Port, or ZMQ) client
+	* Opens an ISStream (TCP or Serial Port) client
 	* @param connectionString Colon delimited string containing connection info, 
 	* [type]:[protocol]:[ip/url]:[port]:[mountpoint]:[username]:[password]
-	*    type:		TCP, SERIAL, ZMQ
+	*    type:		TCP, SERIAL
 	*    protocol:	RTCM3, UBLOX, IS
 	*	[type]:[protocol]:[ip/url]:[port]:[mountpoint]:[username]:[password]
 	*	[TCP]:[RTCM3]:[ip/url]:[port]:[mountpoint]:[username]:[password]
 	*	[TCP]:[RTCM3]:[ip/url]:[port]
 	*	[SERIAL]:[RTCM3]:[serial port]:[baudrate]
-	*	[ZMQ]:[IS]:[send_port]:[recv_port]
 	* @param enableGpggaForwarding Return value indicating that GPGGA GNSS messages should sent for VRS base stations. 
 	* @return cISStream pointer if successful, otherwise NULLPTR
 	*/
