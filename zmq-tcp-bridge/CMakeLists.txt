@@ -23,8 +23,8 @@ add_library(${PROJECT_NAME} SHARED ${BRIDGE_SOURCES} ${BRIDGE_HEADERS})
 # Include directories
 target_include_directories(${PROJECT_NAME} PUBLIC
     include
-    ../src
-    ../external
+    ../inertialsense/src
+    ../inertialsense/external
 )
 
 # Link against InertialSenseSDK and ZMQ
@@ -42,8 +42,8 @@ add_executable(zmq_tcp_bridge src/zmq_tcp_bridge_main.cpp)
 
 target_include_directories(zmq_tcp_bridge PRIVATE
     include
-    ../src
-    ../external
+    ../inertialsense/src
+    ../inertialsense/external
 )
 
 # Link libraries for the executable
