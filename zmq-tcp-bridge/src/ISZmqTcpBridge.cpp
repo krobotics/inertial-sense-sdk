@@ -268,7 +268,7 @@ std::string cISZmqTcpBridge::GetStatus() const
 {
     if (m_isRunning)
     {
-        return "Running - ZMQ Recv: " + m_zmqRecvEndpoint + ", ZMQ Send: " + m_zmqSendEndpoint + ", TCP Port: " + std::to_string(m_tcpPort);
+        return "Running";
     }
     return "Stopped";
 }
