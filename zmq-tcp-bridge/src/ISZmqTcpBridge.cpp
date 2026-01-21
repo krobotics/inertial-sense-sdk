@@ -83,12 +83,12 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
         m_zmqSendEndpoint = zmqSendEndpoint;
         m_tcpPort = tcpPort;
 
+        // Set running flag before starting forwarding threads
+        m_isRunning = true;
+
         // Start forwarding threads
         m_zmqToTcpThread = std::make_unique<std::thread>(&cISZmqTcpBridge::ZmqToTcpForwardingThread, this);
         m_tcpToZmqThread = std::make_unique<std::thread>(&cISZmqTcpBridge::TcpToZmqForwardingThread, this);
-        
-        // Set running flag after threads are created
-        m_isRunning = true;
 
         std::cout << "ZMQ-to-TCP Bridge started:" << std::endl;
         std::cout << "  ZMQ Recv: " << zmqRecvEndpoint << std::endl;
