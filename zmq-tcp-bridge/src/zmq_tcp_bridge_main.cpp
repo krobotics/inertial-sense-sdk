@@ -70,7 +70,20 @@ int main(int argc, char* argv[])
         }
         else if (strcmp(argv[i], "--tcp-port") == 0 && i + 1 < argc)
         {
-            tcpPort = std::stoi(argv[++i]);
+            try
+            {
+                tcpPort = std::stoi(argv[++i]);
+                if (tcpPort < 1 || tcpPort > 65535)
+                {
+                    std::cerr << "Invalid TCP port number: " << tcpPort << " (must be 1-65535)" << std::endl;
+                    return 1;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                std::cerr << "Invalid TCP port value: " << argv[i] << std::endl;
+                return 1;
+            }
         }
         else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
         {

@@ -67,8 +67,12 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
         if (m_tcpServer->Open("", tcpPort) != 0)
         {
             std::cerr << "Failed to open TCP server on port " << tcpPort << std::endl;
+            // Clean up ZMQ resources
+            m_zmqRecvSocket->close();
+            m_zmqSendSocket->close();
             m_zmqRecvSocket.reset();
             m_zmqSendSocket.reset();
+            m_zmqContext->close();
             m_zmqContext.reset();
             m_tcpServer.reset();
             return -1;
@@ -80,9 +84,11 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
         m_tcpPort = tcpPort;
 
         // Start forwarding threads
-        m_isRunning = true;
         m_zmqToTcpThread = std::make_unique<std::thread>(&cISZmqTcpBridge::ZmqToTcpForwardingThread, this);
         m_tcpToZmqThread = std::make_unique<std::thread>(&cISZmqTcpBridge::TcpToZmqForwardingThread, this);
+        
+        // Set running flag after threads are created
+        m_isRunning = true;
 
         std::cout << "ZMQ-to-TCP Bridge started:" << std::endl;
         std::cout << "  ZMQ Recv: " << zmqRecvEndpoint << std::endl;
@@ -175,8 +181,6 @@ std::string cISZmqTcpBridge::GetStatus() const
 
 void cISZmqTcpBridge::ZmqToTcpForwardingThread()
 {
-    std::vector<uint8_t> buffer(BRIDGE_BUFFER_SIZE);
-
     while (m_isRunning)
     {
         try
