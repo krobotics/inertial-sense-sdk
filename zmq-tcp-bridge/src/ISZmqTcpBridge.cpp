@@ -19,9 +19,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <cstring>
 #include <errno.h>
 
-// Buffer size for data transfer
-constexpr size_t BRIDGE_BUFFER_SIZE = 8192;
-
 cISZmqTcpBridge::cISZmqTcpBridge()
     : m_zmqContext(nullptr)
     , m_zmqRecvSocket(nullptr)
