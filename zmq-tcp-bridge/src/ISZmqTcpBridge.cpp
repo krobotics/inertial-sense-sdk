@@ -339,7 +339,8 @@ void cISZmqTcpBridge::OnClientDataReceived(cISTcpServer* server, is_socket_t soc
     try
     {
         // Forward TCP client data to ZMQ send socket
-        if (m_zmqSendSocket && dataLength > 0)
+        // Validate data parameters before forwarding
+        if (m_zmqSendSocket && data != nullptr && dataLength > 0)
         {
             zmq::message_t message(data, dataLength);
             m_zmqSendSocket->send(message, zmq::send_flags::dontwait);
