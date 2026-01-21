@@ -126,10 +126,14 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
                 m_zmqRecvSocket.reset();
             }
 
-            if (m_zmqSendSocket)
+            // Protect ZMQ send socket with mutex
             {
-                m_zmqSendSocket->close();
-                m_zmqSendSocket.reset();
+                std::lock_guard<std::mutex> lock(m_zmqSendMutex);
+                if (m_zmqSendSocket)
+                {
+                    m_zmqSendSocket->close();
+                    m_zmqSendSocket.reset();
+                }
             }
 
             if (m_zmqContext)
@@ -180,10 +184,14 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
                 m_zmqRecvSocket.reset();
             }
 
-            if (m_zmqSendSocket)
+            // Protect ZMQ send socket with mutex
             {
-                m_zmqSendSocket->close();
-                m_zmqSendSocket.reset();
+                std::lock_guard<std::mutex> lock(m_zmqSendMutex);
+                if (m_zmqSendSocket)
+                {
+                    m_zmqSendSocket->close();
+                    m_zmqSendSocket.reset();
+                }
             }
 
             if (m_zmqContext)
@@ -240,10 +248,14 @@ int cISZmqTcpBridge::Stop()
             m_zmqRecvSocket.reset();
         }
 
-        if (m_zmqSendSocket)
+        // Protect ZMQ send socket with mutex since it may be accessed from callback
         {
-            m_zmqSendSocket->close();
-            m_zmqSendSocket.reset();
+            std::lock_guard<std::mutex> lock(m_zmqSendMutex);
+            if (m_zmqSendSocket)
+            {
+                m_zmqSendSocket->close();
+                m_zmqSendSocket.reset();
+            }
         }
 
         if (m_zmqContext)
@@ -336,14 +348,27 @@ void cISZmqTcpBridge::OnClientDataReceived(cISTcpServer* server, is_socket_t soc
     (void)server;
     (void)socket;
 
+    // Check if bridge is still running before forwarding
+    if (!m_isRunning)
+    {
+        return;
+    }
+
     try
     {
         // Forward TCP client data to ZMQ send socket
         // Validate data parameters before forwarding
-        if (m_zmqSendSocket && data != nullptr && dataLength > 0)
+        if (data != nullptr && dataLength > 0)
         {
-            zmq::message_t message(data, dataLength);
-            m_zmqSendSocket->send(message, zmq::send_flags::dontwait);
+            // Lock mutex to protect ZMQ socket access (ZMQ sockets are not thread-safe)
+            std::lock_guard<std::mutex> lock(m_zmqSendMutex);
+            
+            // Check again after acquiring lock in case Stop() was called
+            if (m_zmqSendSocket && m_isRunning)
+            {
+                zmq::message_t message(data, dataLength);
+                m_zmqSendSocket->send(message, zmq::send_flags::dontwait);
+            }
         }
     }
     catch (const zmq::error_t& e)

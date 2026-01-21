@@ -17,6 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include "ISTcpServer.h"
 
 // Forward declarations to avoid including headers
@@ -120,6 +121,7 @@ private:
     std::unique_ptr<std::thread> m_zmqToTcpThread;
     std::unique_ptr<std::thread> m_tcpToZmqThread;
     std::atomic<bool> m_isRunning;
+    std::mutex m_zmqSendMutex;  // Protects access to m_zmqSendSocket
     
     // Configuration
     std::string m_zmqRecvEndpoint;
