@@ -17,6 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <memory>
 #include <thread>
 #include <atomic>
+#include "ISTcpServer.h"
 
 // Forward declarations to avoid including headers
 namespace zmq {
@@ -24,26 +25,25 @@ namespace zmq {
     class socket_t;
 }
 
-class cISTcpServer;
-
 /**
  * ZMQ-to-TCP Bridge
  * 
- * This class creates a unidirectional bridge from ZMQ sockets to TCP connections.
- * It allows the original InertialSense SDK to receive data via TCP without needing ZMQ support.
+ * This class creates a bidirectional bridge between ZMQ sockets and TCP connections.
+ * It allows the original InertialSense SDK to communicate via TCP without needing ZMQ support.
  * 
  * Architecture:
- * - ZMQ Publisher (external) → ZMQ SUB socket → Bridge → TCP Server → SDK Client
+ * - ZMQ Publisher (external) ←→ ZMQ SUB/PUB sockets ←→ Bridge ←→ TCP Server ←→ SDK Client
  * 
- * Note: Currently implements ZMQ → TCP forwarding (primary use case for IMU data streaming).
- * TCP → ZMQ forwarding can be added if bidirectional communication is needed.
+ * The bridge implements full bidirectional communication:
+ * - ZMQ → TCP: Data from ZMQ publishers is forwarded to connected TCP clients
+ * - TCP → ZMQ: Data from TCP clients is forwarded to ZMQ subscribers
  * 
  * Usage:
  * 1. Start the bridge with ZMQ endpoints and TCP port
  * 2. Connect InertialSense SDK client to TCP port using normal TCP connection string
- * 3. Data flows from ZMQ to TCP transparently
+ * 3. Data flows bidirectionally between ZMQ and TCP transparently
  */
-class cISZmqTcpBridge
+class cISZmqTcpBridge : public iISTcpServerDelegate
 {
 public:
     /**
@@ -82,6 +82,17 @@ public:
      * @return status string
      */
     std::string GetStatus() const;
+
+protected:
+    /**
+     * Delegate method called when TCP client data is received
+     * Forwards the data to ZMQ send socket for TCP → ZMQ communication
+     * @param server the TCP server receiving data
+     * @param socket the client socket
+     * @param data the data received
+     * @param dataLength the number of bytes received
+     */
+    void OnClientDataReceived(cISTcpServer* server, is_socket_t socket, uint8_t* data, int dataLength) override;
 
 private:
     cISZmqTcpBridge(const cISZmqTcpBridge&) = delete;

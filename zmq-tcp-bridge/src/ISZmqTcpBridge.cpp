@@ -59,8 +59,8 @@ int cISZmqTcpBridge::Start(const std::string& zmqRecvEndpoint, const std::string
         m_zmqSendSocket = std::make_unique<zmq::socket_t>(*m_zmqContext, zmq::socket_type::pub);
         m_zmqSendSocket->connect(zmqSendEndpoint);
 
-        // Create TCP server
-        m_tcpServer = std::make_unique<cISTcpServer>(nullptr);
+        // Create TCP server with this as the delegate to receive TCP data
+        m_tcpServer = std::make_unique<cISTcpServer>(this);
         if (m_tcpServer->Open("", tcpPort) != 0)
         {
             std::cerr << "Failed to open TCP server on port " << tcpPort << std::endl;
@@ -318,14 +318,8 @@ void cISZmqTcpBridge::TcpToZmqForwardingThread()
                 m_tcpServer->Update();
             }
 
-            // Note: TCP → ZMQ forwarding would require implementing a custom
-            // TCP server delegate to handle incoming data. For now, this
-            // implementation focuses on ZMQ → TCP forwarding which is the
-            // primary use case (IMU data streaming).
-            //
-            // If bidirectional communication is needed, the TCP server would
-            // need a delegate that captures data and forwards it through
-            // m_zmqSendSocket.
+            // TCP → ZMQ forwarding is handled in the OnClientDataReceived callback,
+            // which is called by the TCP server when data is received from clients.
 
             // Small sleep to prevent busy-waiting
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -333,6 +327,29 @@ void cISZmqTcpBridge::TcpToZmqForwardingThread()
         catch (const std::exception& e)
         {
             std::cerr << "TCP forwarding error: " << e.what() << std::endl;
+        }
+    }
+}
+
+void cISZmqTcpBridge::OnClientDataReceived(cISTcpServer* server, is_socket_t socket, uint8_t* data, int dataLength)
+{
+    (void)server;
+    (void)socket;
+
+    try
+    {
+        // Forward TCP client data to ZMQ send socket
+        if (m_zmqSendSocket && dataLength > 0)
+        {
+            zmq::message_t message(data, dataLength);
+            m_zmqSendSocket->send(message, zmq::send_flags::dontwait);
+        }
+    }
+    catch (const zmq::error_t& e)
+    {
+        if (e.num() != EAGAIN)
+        {
+            std::cerr << "ZMQ send error: " << e.what() << std::endl;
         }
     }
 }

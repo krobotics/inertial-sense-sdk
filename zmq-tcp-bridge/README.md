@@ -9,14 +9,16 @@ The ZMQ-to-TCP Bridge is a standalone library and executable that allows the Ine
 ```
 ┌─────────────┐        ┌──────────────────┐        ┌─────────────────┐
 │ ZMQ         │        │ ZMQ-TCP Bridge   │        │ InertialSense   │
-│ Publisher   │───────>│                  │───────>│ SDK Client      │
-│ (External)  │  ZMQ   │  ZMQ SUB → TCP   │  TCP   │ (Unmodified)    │
+│ Publisher/  │<──────>│                  │<──────>│ SDK Client      │
+│ Subscriber  │  ZMQ   │  ZMQ SUB/PUB     │  TCP   │ (Unmodified)    │
+│ (External)  │        │      ↕           │        │                 │
+│             │        │  TCP Server      │        │                 │
 └─────────────┘        └──────────────────┘        └─────────────────┘
 ```
 
-**Current Implementation**: ZMQ → TCP forwarding (primary use case for IMU data streaming)
-
-**Note**: TCP → ZMQ forwarding is not yet implemented but can be added if bidirectional communication is required.
+**Implementation**: Fully bidirectional
+- ZMQ → TCP: Data from ZMQ publishers is forwarded to connected TCP clients
+- TCP → ZMQ: Data from TCP clients is forwarded to ZMQ subscribers
 
 ## Why This Bridge?
 
@@ -24,11 +26,13 @@ Previously, the InertialSense SDK was modified to add ZMQ support directly (via 
 - Modified vendor code (ISClient.cpp) with `#ifdef ENABLE_ZMQ`
 - Tightly coupled ZMQ dependency to the SDK
 - Harder to maintain during SDK updates
+- Unidirectional communication only
 
 The bridge solves these issues by:
 - Keeping the SDK completely unchanged
 - Isolating ZMQ functionality in a separate component
 - Allowing the SDK to use its native TCP interface
+- Providing full bidirectional communication
 
 ## Building
 
@@ -185,13 +189,13 @@ if (bridge.Start("tcp://127.0.0.1:7115", "tcp://127.0.0.1:7116", 8000) == 0) {
 ### Data Flow
 
 1. **ZMQ → TCP**: Bridge subscribes to ZMQ endpoint, forwards all messages to connected TCP clients
-2. **TCP → ZMQ**: Bridge accepts TCP connections, forwards data to ZMQ publisher (not yet implemented for bidirectional use cases)
+2. **TCP → ZMQ**: Bridge accepts TCP connections, forwards data from TCP clients to ZMQ publisher
 
 ### Threading Model
 
 - Main thread: Bridge control and initialization
 - ZMQ-to-TCP thread: Polls ZMQ socket, forwards to TCP
-- TCP-to-ZMQ thread: Updates TCP server, handles connections
+- TCP-to-ZMQ thread: Updates TCP server, handles connections (data forwarding via delegate callbacks)
 
 ### Performance
 
