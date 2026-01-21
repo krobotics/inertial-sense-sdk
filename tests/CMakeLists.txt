@@ -31,11 +31,14 @@ list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_com_manager_2.cpp")
 find_library(ZMQ_LIB zmq)
 if(NOT ZMQ_LIB)
     message(WARNING "ZMQ library not found. ZMQ tests will be excluded.")
-    # Exclude ISZmqClient tests from compilation if ZMQ is not available
+    # Exclude ISZmqClient and bridge tests from compilation if ZMQ is not available
     list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_ISZmqClient.cpp")
+    list(FILTER TESTS_SOURCES EXCLUDE REGEX "test_ISZmqTcpBridge.cpp")
 else()
     # Define ENABLE_ZMQ for conditional compilation
     add_compile_definitions(ENABLE_ZMQ)
+    # Include bridge headers for tests
+    include_directories(${IS_SDK_DIR}/zmq-tcp-bridge/include)
 endif()
 
 if(WIN32)   # These do not run in Windows
@@ -66,13 +69,15 @@ if(WIN32)   # Windows
         list(APPEND PROJECT_PLATFORM_LIBS ${ZMQ_LIB})
     endif()
 else()      # Linux
-    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m)
+    set(PROJECT_PLATFORM_LIBS gtest_main ${GTEST_LIBRARIES} udev pthread m usb-1.0)
 endif()
 
 # Link InertialSenseSDK static library to the executable
 # Link ZMQ after InertialSenseSDK to resolve symbols
-target_link_libraries(${PROJECT_NAME} ${PROJECT_PLATFORM_LIBS} InertialSenseSDK)
-# Only link ZMQ if it was found
+target_link_libraries(${PROJECT_NAME} InertialSenseSDK ${PROJECT_PLATFORM_LIBS})
+# Only link ZMQ and bridge if it was found
 if(ZMQ_LIB)
     target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
+    # Link ZMQTCPBridge library from build directory
+    target_link_libraries(${PROJECT_NAME} ${IS_SDK_DIR}/build/zmq-tcp-bridge/libZMQTCPBridge.so)
 endif()

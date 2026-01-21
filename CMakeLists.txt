@@ -120,3 +120,11 @@ else ()
         target_link_libraries(${PROJECT_NAME} ${ZMQ_LIB})
     endif()
 endif ()
+
+# Optional: Build ZMQ-TCP bridge if ZMQ is available
+if(ZMQ_LIB)
+    option(BUILD_ZMQ_TCP_BRIDGE "Build the ZMQ-to-TCP bridge library and executable" ON)
+    if(BUILD_ZMQ_TCP_BRIDGE)
+        add_subdirectory(zmq-tcp-bridge)
+    endif()
+endif()
